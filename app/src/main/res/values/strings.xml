@@ -1,0 +1,46 @@
+<resources>
+    <string name="app_name">Reminders</string>
+
+    <!-- MainActivity -->
+
+    <!-- Menu MainActivity -->
+    <string name="action_settings">Settings</string>
+    <string name="menu_action_delete_all">Delete All</string>
+
+    <!-- AddReminderActivity -->
+    <string name="ar_title">Title</string>
+    <string name="ar_status">Status</string>
+    <string name="ar_title_hint">Enter title</string>
+    <string name="ar_statusDone">Done</string>
+    <string name="ar_statusNotDone">Not Done</string>
+    <string name="ar_priority">Priority</string>
+    <string name="ar_priorityLow">!</string>
+    <string name="ar_priorityMedium">!!</string>
+    <string name="ar_priorityHigh">!!!</string>
+    <string name="ar_date">Date</string>
+    <string name="ar_dateView">00/00/00</string>
+    <string name="ar_chooseDate">Choose Date</string>
+    <string name="ar_time">Time</string>
+    <string name="ar_timeView">00:00</string>
+    <string name="ar_chooseTime">Choose Time</string>
+    <string name="ar_submit">Submit</string>
+    <string name="ar_reset">Reset</string>
+    <string name="ar_cancel">Cancel</string>
+    <string name="ar_setalarm">Remind me</string>
+    <string name="ar_alarm">Alarm</string>
+    <string name="ar_repeat">Repeat</string>
+    <string name="ar_repeat_never">Never</string>
+    <string name="ar_repeat_dayly">Dayly</string>
+    <string name="ar_repeat_weekly">Weekly</string>
+    <string name="ar_setpriority">Set priority</string>
+    <string name="ar_setaudio">Set audio</string>
+    <string name="ar_record">Hold to record</string>
+    <string name="ar_recording">Recording</string>
+    <string name="ar_recorded">Audio saved</string>
+    <string name="ar_playing">Playing</string>
+    <string name="ar_stoped">Stoped</string>
+    <string name="ma_today">Today</string>
+    <string name="ma_tomorrow">Tomorrow</string>
+    <string name="menu_action_delete_done">Delete done</string>
+
+</resources>
