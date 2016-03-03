@@ -2,7 +2,6 @@ package project.lluccardoner.reminders.AddReminderActivity;
 
 import android.content.Intent;
 import android.graphics.Color;
-import android.media.Image;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.design.widget.FloatingActionButton;
@@ -13,21 +12,17 @@ import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
-import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.ImageView;
-import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import java.util.Calendar;
 import java.util.Date;
 
-import project.lluccardoner.reminders.MainActivity.MainActivity;
-import project.lluccardoner.reminders.MainActivity.ReminderItem;
+import project.lluccardoner.reminders.Model.ReminderItem;
 
 import project.lluccardoner.reminders.R;
 
@@ -35,11 +30,6 @@ import project.lluccardoner.reminders.R;
  * Created by Lluc on 31/01/2016.
  */
 public class AddReminderActivity extends AppCompatActivity {
-
-    /**
-     * Set alarm
-     * Set audio
-     */
 
     //ar_main.xml
     private FloatingActionButton doneFabButton;
@@ -77,8 +67,7 @@ public class AddReminderActivity extends AppCompatActivity {
     private static String timeString;
     private boolean remindChecked, priorityChecked, audioChecked;
     private Date mDate;
-    private int id;
-
+    private int id=-1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -86,14 +75,13 @@ public class AddReminderActivity extends AppCompatActivity {
         setContentView(R.layout.ar_main);
         arToolbar = (Toolbar) findViewById(R.id.ar_toolbar);
         setSupportActionBar(arToolbar);
-        Bundle b = getIntent().getExtras();
+        Bundle b = this.getIntent().getExtras();
         id = b.getInt(ReminderItem.ID);
         audioPath = Environment.getExternalStorageDirectory().getAbsolutePath() + "/audio_reminder_" + id;
         recorder = new MyRecorder(audioPath);
         initializeViews();
         setDefaultDateTime();
         initializeListeners();
-
 
     }
 
@@ -159,7 +147,7 @@ public class AddReminderActivity extends AppCompatActivity {
                 String fileName = getFileName();
                 Intent data = new Intent();
                 //TODO audio path
-                ReminderItem.packageIntent(data, titleString, priority, status, alarm, fullDate, fileName);
+                ReminderItem.packageIntent(data, id, titleString, priority, status, alarm, fullDate, fileName);
                 setResult(RESULT_OK, data);
                 finish();
             }
@@ -195,7 +183,7 @@ public class AddReminderActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 //TODO setRepeat
-
+                //Not implemented yet
                 repeatArrow.setImageResource(R.drawable.ic_keyboard_arrow_left_black_24dp);
                 repeatView.setVisibility(View.GONE);
                 never.setVisibility(View.VISIBLE);
@@ -303,6 +291,7 @@ public class AddReminderActivity extends AppCompatActivity {
                         return true; // if you want to handle the touch event
                     case MotionEvent.ACTION_UP:
                         // RELEASED
+                        //todo fast release event throws exception
                         if(recorder.isRecording()) {
                             audioView.setText(R.string.ar_recorded);
                             recorder.onRecord(false);
@@ -454,6 +443,8 @@ public class AddReminderActivity extends AppCompatActivity {
 
     }
 
+    //TODO ALARM
+    /////////////////////////////// ALARM NOT IMPLEMENTED YET ////////////////////////////////////////
     /*public static class DatePickerFragment extends DialogFragment implements
             DatePickerDialog.OnDateSetListener {
 

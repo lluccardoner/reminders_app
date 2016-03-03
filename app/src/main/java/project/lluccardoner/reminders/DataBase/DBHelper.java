@@ -4,12 +4,12 @@ import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
-import project.lluccardoner.reminders.MainActivity.ReminderItem;
-
 /**
  * Created by Lluc on 08/02/2016.
  */
 public class DBHelper extends SQLiteOpenHelper {
+
+    ///////////////////// NOT USED ///////////////////////////////////////////////////////////////
 
     public static final int DATABASE_VERSION = 1;
     public static final String DATABASE_NAME = "DBHelper.db";
@@ -21,7 +21,7 @@ public class DBHelper extends SQLiteOpenHelper {
     @Override
     public void onCreate(SQLiteDatabase db) {
         //TODO Data base
-        db.execSQL(ReminderItem.ReminderItemEntry.SQL_CREATE_ENTRIES);
+        //db.execSQL(ReminderItem.ReminderItemEntry.SQL_CREATE_ENTRIES);
     }
 
     @Override

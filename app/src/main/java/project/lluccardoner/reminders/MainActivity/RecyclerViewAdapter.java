@@ -15,17 +15,14 @@ import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
-import java.util.AbstractList;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.Iterator;
-import java.util.List;
 
 import io.realm.Realm;
 import io.realm.RealmResults;
 import project.lluccardoner.reminders.AddReminderActivity.MyRecorder;
 
 
+import project.lluccardoner.reminders.Model.ReminderItem;
 import project.lluccardoner.reminders.R;
 
 /**
@@ -35,16 +32,23 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewAdapte
 
     private final int ONE_DAY = 86400000;//milliseconds
 
-    private final List<ReminderItem> reminderList = new ArrayList<ReminderItem>();
-    private String generalAudioPath = Environment.getExternalStorageDirectory().getAbsolutePath() + "/audio_reminder_";
-    private MyRecorder recorder;
     private Context context;
 
+    //Audio recorder and audio player
+    private MyRecorder recorder;
+
+    //Slide touch gesture
     private int DELTA = 100;
     private float historicX = 0;
     private float historicY = 0;
 
+    //realm data base
+    private RealmResults<ReminderItem> itemList;
     private Realm realm;
+
+    //holder for the recycler view
+    private RecyclerViewAdapter.ViewHolder holder;
+
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
         //ma_reminder_item.xml
@@ -75,9 +79,15 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewAdapte
         }
     }
 
-    // Provide a suitable constructor (depends on the kind of dataset)
-    public RecyclerViewAdapter(Context context, Realm realm) {
+    // Constructor
+    public RecyclerViewAdapter(Context context, RealmResults<ReminderItem> realmresults, Realm realm) {
         this.context = context;
+        if (realmresults.size() == 0) {
+            Log.d("Adapter", "results empty");
+        }
+        //TODO work just with RealmResults<>
+        this.itemList = realmresults;
+        this.realm = realm;
     }
 
     @Override
@@ -90,16 +100,17 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewAdapte
 
     @Override
     public void onBindViewHolder(RecyclerViewAdapter.ViewHolder holder, int position) {
-        ReminderItem item = reminderList.get(position);
-        holder.itemTitle.setText(item.getmTitle());
-        setPriorityText(holder, item.getmPriority());
-        if (1 /*Alarm ON*/ == item.getmAlarm()) {
-            setDateText(holder, item.getmDate());
+        this.holder=holder;
+        ReminderItem item = itemList.get(position);
+        holder.itemTitle.setText(item.getTitle());
+        setPriorityText(holder, item.getPriority());
+        if (1 /*Alarm ON*/ == item.getAlarm()) {
+            setDateText(holder, item.getDate());
         } else {
             holder.itemDateTime.setVisibility(View.INVISIBLE);
         }
         setMyRecorder();
-        setAudioPlayListener(holder, item.getmAudioFilePath());
+        setAudioPlayListener(holder, item.getAudioFilePath());
         //setAudioStopListener(holder, item.getAudioFilePath());
         setStatusListener(holder, item);
         setItemLayoutListener(holder);
@@ -112,6 +123,7 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewAdapte
     }
 
     //TODO drag (https://github.com/daimajia/AndroidSwipeLayout)
+    //slide touch gesture listener
     private void setItemLayoutListener(final ViewHolder holder) {
         holder.itemLayout.setOnTouchListener(new View.OnTouchListener() {
             @Override
@@ -166,17 +178,22 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewAdapte
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked) {
                     Log.d("Adapter", "Status button pressed");
-                    item.setmStatus(1 /*Status.DONE*/);
+                    realm.beginTransaction();
+                    item.setStatus(1 /*Status.DONE*/);
+                    realm.commitTransaction();
                 } else {
                     Log.d("Adapter", "Status button not pressed");
-                    item.setmStatus(0 /*Status.NOTDONE*/);
+                    realm.beginTransaction();
+                    item.setStatus(0 /*Status.NOTDONE*/);
+                    realm.commitTransaction();
+
                 }
             }
         });
 
     }
 
-    private void setEditListener(final RecyclerViewAdapter.ViewHolder holder, final ReminderItem item){
+    private void setEditListener(final RecyclerViewAdapter.ViewHolder holder, final ReminderItem item) {
         holder.itemEdit.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -190,7 +207,17 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewAdapte
         holder.itemDelete.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                reminderList.remove(item);
+                realm.beginTransaction();
+                //itemList.remove(itemList.indexOf(item)); --> not supported in Realm version
+                RealmResults<ReminderItem> res = itemList.where().equalTo(ReminderItem.ID, item.getId()).findAll();
+                if(res.size()==1){
+                    Log.d("Adapter","item removed. Id: "+Integer.toString(item.getId()));
+                    res.clear();
+                }
+                else{
+                    Log.e("Adapter","item not removed");
+                }
+                realm.commitTransaction();
                 notifyDataSetChanged();
             }
         });
@@ -217,6 +244,7 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewAdapte
 
     private void setAudioStopListener(final RecyclerViewAdapter.ViewHolder holder, final String audioFilePath) {
         //TODO set listener for stoping audio
+        // not used
         holder.itemStop.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -233,7 +261,7 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewAdapte
 
     private void setDateText(ViewHolder holder, Date date) {
         if (date != null) {
-            //TODO
+            //TODO not done yet
             if (date.equals(new Date())) {
                 holder.itemDateTime.setText(R.string.ma_today);
 
@@ -250,13 +278,13 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewAdapte
     private void setPriorityText(RecyclerViewAdapter.ViewHolder holder, int priority) {
         if (0 /*Priority.NONE*/ == priority) {
             holder.itemPriority.setVisibility(View.GONE);
-        } else if (1/*Priority.LOW*/==priority) {
+        } else if (1/*Priority.LOW*/ == priority) {
             holder.itemPriority.setVisibility(View.VISIBLE);
             holder.itemPriority.setText(R.string.ar_priorityLow);
-        } else if (2/*Priority.MED*/==priority){
+        } else if (2/*Priority.MED*/ == priority) {
             holder.itemPriority.setVisibility(View.VISIBLE);
             holder.itemPriority.setText(R.string.ar_priorityMedium);
-        } else if (3/*Priority.HIGH*/==priority) {
+        } else if (3/*Priority.HIGH*/ == priority) {
             holder.itemPriority.setVisibility(View.VISIBLE);
             holder.itemPriority.setText(R.string.ar_priorityHigh);
         }
@@ -264,46 +292,47 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewAdapte
 
     @Override
     public int getItemCount() {
-        return reminderList.size();
+        return itemList.size();
     }
 
-    public void add(ReminderItem item, int id) {
-        item.setId(id);
-        reminderList.add(item);
+    public void settings() {
+        holder.itemElements.setPadding(0, 0, 240, 0);
+        holder.itemDelete.setVisibility(View.VISIBLE);
+        holder.itemEdit.setVisibility(View.VISIBLE);
+        //TODO visivility if no audio
+        holder.itemPlay.setVisibility(View.VISIBLE);
+    }
+
+    public void add(ReminderItem item) {
         saveItemToDB(item);
         notifyDataSetChanged();
     }
 
-    public void addList(RealmResults<ReminderItem> realmResults){
-        reminderList.addAll(realmResults);
-    }
-
     public void clear() {
-        reminderList.clear();
-        realm.clear(ReminderItem.class);
+        realm.beginTransaction();
+        itemList.clear();
+        realm.commitTransaction();
         notifyDataSetChanged();
     }
 
     public Object getItem(int position) {
-        return reminderList.get(position);
+        return itemList.get(position);
 
     }
 
     public void deleteDone() {
-        Iterator<ReminderItem> iterator = reminderList.iterator();
-        while(iterator.hasNext()){
-            ReminderItem item = iterator.next();
-            if(item.getmStatus()==1/*Status.DONE*/){
-                reminderList.remove(item);
-            }
-        }
+        realm.beginTransaction();
+        itemList.where().equalTo(ReminderItem.STATUS, 1).findAll().clear();
+        realm.commitTransaction();
+        notifyDataSetChanged();
     }
 
-    private void saveItemToDB(ReminderItem item){
+    private void saveItemToDB(ReminderItem item) {
+        Log.d("Adapter","save item to DB");
         realm.beginTransaction();
         realm.copyToRealm(item);
         realm.commitTransaction();
-
+        itemList = realm.allObjects(ReminderItem.class);
     }
 
 }

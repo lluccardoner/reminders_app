@@ -14,6 +14,8 @@ import java.util.Date;
  */
 public class MyAlarmManager extends BroadcastReceiver {
 
+    ///////////////////// NOT IMPLEMENTED YET /////////////////////////////////////////////////////
+
     private ArrayList<PendingIntent> alarmList;
     public static final String REQUEST_CODE = "requestCode";
     public static final String REPEAT = "repeat";

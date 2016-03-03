@@ -14,5 +14,6 @@
     <dimen name="icon_layout">48dp</dimen>
     <dimen name="toolbar_height">56dp</dimen>
     <dimen name="text_height_32">32dp</dimen>
+    <dimen name="text_height_48">48dp</dimen>
 
 </resources>

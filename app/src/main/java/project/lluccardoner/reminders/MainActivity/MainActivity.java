@@ -1,10 +1,6 @@
 package project.lluccardoner.reminders.MainActivity;
 
-import android.content.ContentValues;
 import android.content.Intent;
-import android.database.Cursor;
-import android.database.sqlite.SQLiteConstraintException;
-import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
@@ -16,13 +12,12 @@ import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
 
-import java.util.Date;
-
 import io.realm.Realm;
 import io.realm.RealmConfiguration;
 import io.realm.RealmResults;
+import io.realm.exceptions.RealmMigrationNeededException;
 import project.lluccardoner.reminders.AddReminderActivity.AddReminderActivity;
-import project.lluccardoner.reminders.DataBase.DBHelper;
+import project.lluccardoner.reminders.Model.ReminderItem;
 import project.lluccardoner.reminders.R;
 
 public class MainActivity extends AppCompatActivity {
@@ -30,9 +25,10 @@ public class MainActivity extends AppCompatActivity {
     private static final int ADD_REMINDER_ITEM_REQUEST = 0;
     private static final String ADD_REMINDER_ACTION = "ADD_REMINDER";
     private static final String TAG = "MainActivity";
-    //private static final String FILE_NAME = "ReminderActivityData.txt";
-    private int id = 0;
+
+    /*Realm Data Base v0.87.5*/
     private Realm realm;
+    private RealmResults<ReminderItem> realmResults;
 
     /*ma_main.xml*/
     private Toolbar toolbar;
@@ -50,15 +46,14 @@ public class MainActivity extends AppCompatActivity {
         toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        initializeDB();
-        initializeItems();
         initializeViews();
         initializeListeners();
+        initializeDB();
 
         recyclerView.setHasFixedSize(true);
         mLayoutManager = new LinearLayoutManager(this);
         recyclerView.setLayoutManager(mLayoutManager);
-        mAdapter = new RecyclerViewAdapter(this, realm);
+        mAdapter = new RecyclerViewAdapter(this, realmResults, realm);
         recyclerView.setAdapter(mAdapter);
 
     }
@@ -67,17 +62,20 @@ public class MainActivity extends AppCompatActivity {
         // Create a RealmConfiguration which is to locate Realm file in package's "files" directory.
         RealmConfiguration realmConfig = new RealmConfiguration.Builder(this).build();
         // Get a Realm instance for this thread
-        realm = Realm.getInstance(realmConfig);
-    }
-
-    private void initializeItems(){
-        if(mAdapter.getItemCount()==0){
-            RealmResults<ReminderItem> results = realm.allObjects(ReminderItem.class);
-            mAdapter.addList(results);
+        try {
+            realm = Realm.getInstance(realmConfig);
+        } catch (RealmMigrationNeededException e) {
+            try {
+                Realm.deleteRealm(realmConfig);
+                //Realm file has been deleted.
+                realm = Realm.getInstance(realmConfig);
+            } catch (Exception ex) {
+                throw ex;
+                //No Realm file to remove.
+            }
         }
+        realmResults = realm.allObjects(ReminderItem.class);
     }
-
-
 
     private void initializeViews() {
         recyclerView = (RecyclerView) findViewById(R.id.ma_recycler_view);
@@ -91,14 +89,24 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View view) {
                 Intent addReminderIntent = new Intent(MainActivity.this, AddReminderActivity.class);
                 Bundle b = new Bundle();
-                //TODO id
-                id++;
+                int id = realmResults.size();
+                Log.d(TAG, Integer.toString(id));
                 b.putInt(ReminderItem.ID, id);
                 addReminderIntent.putExtras(b);
                 addReminderIntent.setAction(ADD_REMINDER_ACTION);
                 startActivityForResult(addReminderIntent, ADD_REMINDER_ITEM_REQUEST);
             }
         });
+
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+
+        if (requestCode == ADD_REMINDER_ITEM_REQUEST && resultCode == RESULT_OK) {
+            ReminderItem item = new ReminderItem(data);
+            mAdapter.add(item);
+        }
 
     }
 
@@ -114,7 +122,7 @@ public class MainActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
         if (id == R.id.action_settings) {
-            return true;
+            mAdapter.settings();
         }
         if (id == R.id.menu_action_delete_all) {
             mAdapter.clear();
@@ -126,35 +134,9 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 
-        if (requestCode == ADD_REMINDER_ITEM_REQUEST && resultCode == RESULT_OK) {
-            ReminderItem item = new ReminderItem(data);
-            mAdapter.add(item, id);
 
-        }
-
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-        if (mAdapter.getItemCount() == 0) {
-            //loadItems();
-            //loadItemsFromDB();
-
-        }
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        //saveItems();
-        //saveItemsToDB();
-
-    }
-///////////////////////////////////////////////// NOT USED
+/////////////////////// NOT USED //////////////////////////////////////////////////////////////////
 
     /*private void loadItems() {
         BufferedReader reader = null;
@@ -227,12 +209,12 @@ public class MainActivity extends AppCompatActivity {
             ContentValues contentValues = new ContentValues();
 
             contentValues.put(ReminderItem.ReminderItemEntry.COLUM1_NAME_ID, item.getId());
-            contentValues.put(ReminderItem.ReminderItemEntry.COLUM2_NAME_TITLE, item.getmTitle());
-            contentValues.put(ReminderItem.ReminderItemEntry.COLUM3_NAME_PRIORITY, item.getmPriority().ordinal());
-            contentValues.put(ReminderItem.ReminderItemEntry.COLUM4_NAME_STATUS, item.getmStatus().ordinal());
-            contentValues.put(ReminderItem.ReminderItemEntry.COLUM5_NAME_ALARM, item.getmAlarm().ordinal());
-            contentValues.put(ReminderItem.ReminderItemEntry.COLUM6_NAME_DATETIME, item.getmDate().toString());
-            contentValues.put(ReminderItem.ReminderItemEntry.COLUM7_NAME_AUDIO, item.getmAudioFilePath());
+            contentValues.put(ReminderItem.ReminderItemEntry.COLUM2_NAME_TITLE, item.getTitle());
+            contentValues.put(ReminderItem.ReminderItemEntry.COLUM3_NAME_PRIORITY, item.getPriority().ordinal());
+            contentValues.put(ReminderItem.ReminderItemEntry.COLUM4_NAME_STATUS, item.getStatus().ordinal());
+            contentValues.put(ReminderItem.ReminderItemEntry.COLUM5_NAME_ALARM, item.getAlarm().ordinal());
+            contentValues.put(ReminderItem.ReminderItemEntry.COLUM6_NAME_DATETIME, item.getDate().toString());
+            contentValues.put(ReminderItem.ReminderItemEntry.COLUM7_NAME_AUDIO, item.getAudioFilePath());
 
 
             try {
@@ -305,5 +287,5 @@ public class MainActivity extends AppCompatActivity {
             } while (cursor.moveToNext());
         }
     }*/
-    
+
 }
